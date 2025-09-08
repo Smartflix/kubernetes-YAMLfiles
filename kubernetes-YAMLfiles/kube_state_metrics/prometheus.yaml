@@ -178,6 +178,19 @@ subjects:
   namespace: monitoring
 
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-pvc
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -202,6 +215,13 @@ spec:
           - "--storage.tsdb.path=/prometheus/"
         ports:
         - containerPort: 9090
+        resources:             # ✅ resource requests & limits
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
         volumeMounts:
         - name: prometheus-config-volume
           mountPath: /etc/prometheus/
@@ -212,8 +232,9 @@ spec:
         configMap:
           defaultMode: 420
           name: prom-server-conf
-      - name: prometheus-storage-volume
-        emptyDir: {}
+      - name: prometheus-storage-volume   # ✅ now using PVC instead of emptyDir
+        persistentVolumeClaim:
+          claimName: prometheus-pvc
 
 ---
 apiVersion: v1
